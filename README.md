@@ -28,23 +28,21 @@ For Linux, install the package "TensorRT 10.5 GA for Linux x86_64 and CUDA 12.0 
 
 #### Build steps
 
-1. In the mod_neoforge directory, run `./gradlew setup`. This can take some time as it downloads the NeoForge dependencies.
+1. Run `./gradlew build`. After a successful build, the mod .jar file will be located in the build folder `mod_neoforge/build/libs/buildwithbombs-0.2.1.jar`. 
 
-2. Run `./gradlew build`. After a successful build, the mod .jar file will be located in the build folder `mod_neoforge/build/libs/buildwithbombs-0.2.1.jar`. 
-
-3. Build the inference DLL using CMake.
+2. Build the inference DLL using CMake.
 In the `inference_dll` directory, run:
     * `mkdir build`
     * `cd build` 
     * `cmake ..`
     * `cmake --build . --config Release`
 
-4. Copy the newly built library (`inference.dll` on Windows, `libinference.so` on Linux) to the mod's run folder. The `run` folder should have been created after the `./gradlew setup` step.
+3. Copy the newly built library (`inference.dll` on Windows, `libinference.so` on Linux) to the mod's run folder. Create the `run` folder if it doesn't exist yet.
     * `cp libinference.so ../mod_neoforge/run`
   
-5. Copy the .ONNX model file from the GitHub [release page](https://github.com/timothy-barnes-2357/Build-with-Bombs/releases/download/v0.2.1/ddim_single_update.onnx) and place it in the `mod_neoforge/run` directory. This contains the model parameters and must be located next to inference.dll.
+4. Copy the .ONNX model file from the GitHub [release page](https://github.com/timothy-barnes-2357/Build-with-Bombs/releases/download/v0.2.1/ddim_single_update.onnx) and place it in the `mod_neoforge/run` directory. This contains the model parameters and must be located next to inference.dll.
   
-6. Make sure inference.dll is able to find the TensorRT and CUDA dynamic libraries. Either copy all DLLs into the `mod_neoforge/run` directory, or add the CUDA and TensorRT lib folders to the system path. On Linux, this can be done by `export LD_LIBRARY_PATH=/usr/local/tensorrt-10.5/lib:$LD_LIBRARY_PATH`
+5. Make sure inference.dll is able to find the TensorRT and CUDA dynamic libraries. Either copy all DLLs into the `mod_neoforge/run` directory, or add the CUDA and TensorRT lib folders to the system path. On Linux, this can be done by `export LD_LIBRARY_PATH=/usr/local/tensorrt-10.5/lib:$LD_LIBRARY_PATH`
 
 7. Test the mod by running `./gradlew runClient`
 
