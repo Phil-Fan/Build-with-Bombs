@@ -47,34 +47,58 @@ nvcc --version
 dpkg -l | grep nvinfer
 ```
 
-### tiny demo to check the installation
+## Build and Test Options
 
-1. change line 831 in [inference_main.cpp](inference_main.cpp#L831) into
+You can choose to build either the shared library (inference.so) for production use, or a standalone test executable for testing the installation.
 
-    ```cpp
-    #if 1
-    ```
-    comment out `freopen` on line 334 [inference_main.cpp](inference_main.cpp#L334) (this allows printfs to work and not go to the .log")
+### Option 1: Using Make (Recommended)
 
-    ```cpp
-    // freopen("buildwithbombs.log", "w", stdout);
-    ```
-2. change line 20 in [CMakeLists.txt](CMakeLists.txt#L20) into
+```shell
+# Build the shared library
+make lib
 
-    ```cmake
-    add_executable(inference "./inference_main.cpp")
-    ```
-    
-3. build the inference DLL using CMake.
+# Build the test executable
+make test
 
+# Build both library and test executable
+make all
+
+# Run the test
+make run
+
+# Clean all build files
+make clean
+```
+
+### Option 2: Using CMake Directly (Alternative Method)
+
+If the Makefile is not available or you need more control over the build process, you can use CMake directly:
+
+1. Build the shared library (inference.so)
     ```shell
-    mkdir build
-    cd build
+    # Create a build directory for the shared library
+    mkdir build_lib
+    cd build_lib
     cmake ..
     cmake --build . --config Release
     ```
+    This will generate `libinference.so` in the build_lib directory.
 
-    it will generate a executable file `inference` in the `build` folder.
+2. Build the test executable
+    ```shell
+    # Create a build directory for the test executable
+    mkdir build_test
+    cd build_test
+    # This will automatically enable test mode without manual code changes
+    cmake .. -DSTANDALONE_TEST=ON
+    cmake --build . --config StandaloneTest
+    ```
+    This will generate the `inference` executable in the build_test directory. When building with STANDALONE_TEST=ON:
+    - Test code is automatically enabled
+    - Console output is enabled (no log file redirection)
+    - No manual code changes are needed
+
+Note: Both methods will produce the same output files. Choose the method that best suits your needs.
 
 4. run the inference
 

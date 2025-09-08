@@ -118,6 +118,7 @@ struct WorkerThreadState {
     std::atomic<bool> denoise_should_start;
     std::atomic<bool> diffusion_running;
     std::atomic<int32_t> timestep;
+    std::atomic<bool> should_exit;  // New flag to signal thread exit
 
     float x_t       [EMBEDDING_DIMENSIONS][CHUNK_WIDTH][CHUNK_WIDTH][CHUNK_WIDTH];
     float x_context [EMBEDDING_DIMENSIONS][CHUNK_WIDTH][CHUNK_WIDTH][CHUNK_WIDTH];
@@ -219,13 +220,16 @@ int thread_worker_main(WorkerThreadState *state) {
      * the start of the loop is blocked waiting on a start signal from startDiffusion()
      */
     for (;;) {
-
         /* Wait until the mutex unlocks */
         {
             std::unique_lock<std::mutex> lock(state->mutex);
 
-            while (!state->denoise_should_start) {
+            while (!state->denoise_should_start && !state->should_exit) {
                 state->conditional_variable.wait(lock);
+            }
+
+            if (state->should_exit) {
+                return 0;  // Exit the thread
             }
 
             state->denoise_should_start = false; // Auto reset so it blocks next loop iteration.
@@ -491,6 +495,7 @@ int thread_init_main() {
     for (int i = 0; i < global_worker_count; i++) {
 
         worker_states[i] = new WorkerThreadState();
+        worker_states[i]->should_exit = false;  // Initialize the exit flag
 
         /* 
          * The TensorRT execution context is not thread safe,
@@ -828,7 +833,7 @@ extern "C" DLL_EXPORT int32_t Java_com_buildwithbombs_Inference_getVersionPatch(
  * It creates multiple diffusion jobs running simultaneously.
  * Uncomment if building as a .exe and not .dll
  */
-#if 0
+#ifdef STANDALONE_TEST
 int main() {
 
     /* In the nomenclature of this file, "workers" are persistent threads that
@@ -886,9 +891,9 @@ int main() {
     }
    
     /* Collect and print all 1k timesteps for all active jobs */
+    int jobs_finished = 0;  // Move this outside the loop
+    
     for (;;) {
-
-        int jobs_finished = 0;
 
         for (int i = 0; i < job_count; i++) {
 
@@ -912,28 +917,25 @@ int main() {
                     }
                 }
                 
-                printf("job: %d, step = %d, sum = %f\n", i, last_job_step[i], sum);
+                printf("job: %d, step = %d, sum = %d\n", i, last_job_step[i], sum);
                 fflush(stdout);
 
                 if (last_job_step[i] == 0) {
                     jobs_finished++;
+                    printf("Job %d completed (%d/%d jobs finished)\n", i, jobs_finished, job_count);
                 }
             }
         }
 
+        // Check if all jobs are finished
         if (jobs_finished == job_count) {
-            break;
-        }
-    }
-
-    for (int i = 0; i < job_count; i++) {
-
-        if(destroyJob(jobs[i]) != 0) {
-            printf("Destroy job failed\n");
+            printf("All jobs completed, exiting...\n");
+            return 0;
         }
     }
     
     return 0;
 }
 #endif
+
 

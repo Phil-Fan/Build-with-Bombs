@@ -16,8 +16,16 @@ else()
     set(CUDA_LIB_PATH "${CUDA_PATH}/lib64")
 endif()
 
-# Add source file
-add_library(inference SHARED "./inference_main.cpp")
+# Build configuration option
+option(STANDALONE_TEST "Build standalone test executable" OFF)
+
+# Add targets based on configuration
+if(STANDALONE_TEST)
+    add_executable(inference "./inference_main.cpp")
+    target_compile_definitions(inference PRIVATE STANDALONE_TEST=1)
+else()
+    add_library(inference SHARED "./inference_main.cpp")
+endif()
 
 # Include directories
 target_include_directories(inference PRIVATE
@@ -50,3 +58,10 @@ endif()
 
 # Position-independent code
 set_target_properties(inference PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+# Ignore deprecated warnings from TensorRT
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(inference PRIVATE "-Wno-deprecated-declarations")
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    target_compile_options(inference PRIVATE "/wd4996")
+endif()
