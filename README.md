@@ -19,19 +19,26 @@ TensorRT 10.5 requires an NVIDIA GPU with compute capability >= 7.5. This means 
 This setup guide includes steps for building the `.jar` Java mod file as well as building the native executable.
 
 ### Required packages and programs
+
 * CMake: https://cmake.org/download/
 * Java 21 JDK: https://www.oracle.com/java/technologies/downloads/#jdk21-windows
 * CUDA 12.6: https://developer.nvidia.com/cuda-12-6-0-download-archive
 * TensorRT 10.5: https://developer.nvidia.com/tensorrt/download/10x
+* (Optional) Make: https://www.gnu.org/software/make/
 
 You can check your environment configuration by running the following commands:
 
 ```shell
-make --version
+cmake --version
+
 java --version
+
 nvidia-smi
 nvcc --version
+
 dpkg -l | grep nvinfer
+
+make --version
 ```
 
 Check [linux_install_steps.md](inference_dll/linux_install_steps.md) for more details.
@@ -41,12 +48,33 @@ Check [linux_install_steps.md](inference_dll/linux_install_steps.md) for more de
 
 1. Run `./gradlew build`. After a successful build, the mod .jar file will be located in the build folder `mod_neoforge/build/libs/buildwithbombs-0.2.1.jar`. 
 
-2. Build the inference DLL using CMake.
-In the `inference_dll` directory, run:
-    * `mkdir build`
-    * `cd build` 
-    * `cmake ..`
-    * `cmake --build . --config Release`
+2. Build the inference library and test executable:
+
+   Option 1: Using Make (Recommended)
+   ```shell
+   cd inference_dll
+   
+   # Build the shared library
+   make lib
+   
+   # Build the test executable
+   make test
+   
+   # Or build both
+   make all
+   
+   # Run the test (optional)
+   make run
+   ```
+
+   Option 2: Using CMake Directly
+   ```shell
+   cd inference_dll
+   mkdir build
+   cd build
+   cmake ..
+   cmake --build . --config Release
+   ```
 
 3. Copy the newly built library (`inference.dll` on Windows, `libinference.so` on Linux) to the mod's run folder. Create the `run` folder if it doesn't exist yet.
     * `cp libinference.so ../mod_neoforge/run`
