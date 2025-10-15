@@ -41,12 +41,38 @@ dpkg -l | grep nvinfer
 make --version
 ```
 
-Check [linux_install_steps.md](inference_dll/linux_install_steps.md) for more details.
+Check [tensorrt_linux_install_steps.md](inference_dll/tensorrt_linux_install_steps.md) for TensorRT installation details.
 
 
-### Build steps (Windows and Linux x86_64)
+### Build steps (Windows)
 
-1. Run `./gradlew build`. After a successful build, the mod .jar file will be located in the build folder `mod_neoforge/build/libs/buildwithbombs-0.2.1.jar`. 
+1. Run `./gradlew build`. After the build succeeds, the mod .jar file will be located at `mod_neoforge/build/libs/buildwithbombs-0.2.1.jar`.
+
+2. Build the inference library and test executable using CMake:
+   ```shell
+   cd inference_dll
+   mkdir build
+   cd build
+   cmake ..
+   cmake --build . --config Release
+   ```
+   This will produce `inference.dll` in the `inference_dll/build/Release` directory.
+
+3. Create a `run` directory inside `mod_neoforge` if it does not exist, and copy the generated DLL
+
+4. Download the ONNX model from the [release page](https://github.com/timothy-barnes-2357/Build-with-Bombs/releases/download/v0.2.1/ddim_single_update.onnx) and place it in the `mod_neoforge/run` directory. This contains the model 
+parameters and must be located next to `inference.dll`.
+
+5. Make sure `inference.dll` is able to find the TensorRT and CUDA dynamic libraries. Either copy all DLLs into the `mod_neoforge/run` directory, or add the CUDA and TensorRT lib folders to the system path.
+
+6. Test the mod by running:
+   ```
+   ./gradlew runClient
+   ```
+
+### Build steps (Linux x86_64)
+
+1. Run `./gradlew build`. After the build succeeds, the mod .jar file will be located at `mod_neoforge/build/libs/buildwithbombs-0.2.1.jar`.
 
 2. Build the inference library and test executable:
 
@@ -56,18 +82,9 @@ Check [linux_install_steps.md](inference_dll/linux_install_steps.md) for more de
    
    # Build the shared library
    make lib
-   
-   # Build the test executable
-   make test
-   
-   # Or build both
-   make all
-   
-   # Run the test (optional)
-   make run
    ```
 
-   Option 2: Using CMake Directly
+   Option 2: Using CMake directly
    ```shell
    cd inference_dll
    mkdir build
@@ -76,21 +93,30 @@ Check [linux_install_steps.md](inference_dll/linux_install_steps.md) for more de
    cmake --build . --config Release
    ```
 
-3. Copy the newly built library (`inference.dll` on Windows, `libinference.so` on Linux) to the mod's run folder. Create the `run` folder if it doesn't exist yet.
-    * `cp libinference.so ../mod_neoforge/run`
-  
-4. Copy the .ONNX model file from the GitHub [release page](https://github.com/timothy-barnes-2357/Build-with-Bombs/releases/download/v0.2.1/ddim_single_update.onnx) and place it in the `mod_neoforge/run` directory. This contains the model parameters and must be located next to inference.dll.
-  
-5. Make sure inference.dll is able to find the TensorRT and CUDA dynamic libraries. Either copy all DLLs into the `mod_neoforge/run` directory, or add the CUDA and TensorRT lib folders to the system path. On Linux, this can be done by `export LD_LIBRARY_PATH=/usr/local/tensorrt-10.5/lib:$LD_LIBRARY_PATH`
+3. Copy the newly built library (`libinference.so`) to the mod's run folder. Create the `run` folder if it doesn't exist:
+   ```shell
+   cp libinference.so ../mod_neoforge/run
+   ```
 
-7. Test the mod by running `./gradlew runClient`
+4. Download the ONNX model from the [release page](https://github.com/timothy-barnes-2357/Build-with-Bombs/releases/download/v0.2.1/ddim_single_update.onnx) and place it in the `mod_neoforge/run` directory. This contains the model 
+parameters and must be located next to `libinference.so`.
+
+5. Make sure `libinference.so` can find the TensorRT and CUDA shared libraries. Either copy all required `.so` files into `mod_neoforge/run`, or add the TensorRT and CUDA library folders to your system path:
+   ```shell
+   export LD_LIBRARY_PATH=/usr/local/tensorrt-10.5/lib:$LD_LIBRARY_PATH
+   ```
+
+6. Test the mod by running:
+   ```shell
+   ./gradlew runClient
+   ```
 
 
 ### Build steps (Linux aarch64)
 
 > There are still some issues with the Linux aarch64 build. Before we fix them, you can try the following steps to build the mod.
 
-1. following the steps in [linux_install_steps.md](inference_dll/linux_install_steps.md) to install TensorRT and CUDA.
+1. following the steps in [tensorrt_linux_install_steps.md](inference_dll/tensorrt_linux_install_steps.md) to install TensorRT and CUDA.
 
 2. Locate the following CUDA and TensorRT and copy them to your Minecraft run directory (the parent directory of /mods).
     (usually in `/usr/local/tensorrt-10.5/lib`)
@@ -101,9 +127,10 @@ Check [linux_install_steps.md](inference_dll/linux_install_steps.md) for more de
     * libnvonnxparser.so
     * libcudart.so.12
 
-3. Place `buildwithbombs-0.2.2.jar`(build from previous step) in the Minecraft /mods folder
-4. Place `libinference.so` (build from previous step) in the Minecaft run directory.
+3. Place `buildwithbombs-0.2.1.jar`(build from previous step) in the Minecraft `/mods` folder
+4. Place `libinference.so` (build from previous step) in the Minecraft run directory.
 5. Place ddim_single_update.onnx (from [release page](https://github.com/timothy-barnes-2357/Build-with-Bombs/releases/tag/v0.2.1)) in the Minecraft run directory.
+6. Start the game. If it loads, you will be given "Diffusion TNT" items upon entering a world. Placing one of these blocks triggers the diffusion process.
 
 once you move all the files to the run directory, your folder structure should be like this:
 
@@ -121,8 +148,80 @@ once you move all the files to the run directory, your folder structure should b
 └── versions
     └── 1.21.1-NeoForge
 ```
+
 6. Start the game. If it loads, you will be given "Diffusion TNT" items upon entering a world. Placing one of these blocks triggers the diffusion process.
 
+
+
+
+
+### Building and running the standalone test
+
+To test your TensorRT installation without running Minecraft, you can build and run a standalone test executable:
+
+
+**On Linux:**
+
+```shell
+cd inference_dll
+
+# Build the shared library libinference.so
+make lib
+
+# Build the test executable inference
+make test 
+
+# Run the test
+make run
+
+# Clean all build files
+make clean
+```
+
+**On Windows:**
+
+
+1. Build the shared library (inference.dll)
+    ```shell
+    # Create a build directory for the shared library
+    mkdir build_lib
+    cd build_lib
+    cmake ..
+    cmake --build . --config Release
+    ```
+    This will generate `inference.dll` in the build_lib directory.
+
+2. Build the test executable
+    ```shell
+    # Create a build directory for the test executable
+    mkdir build_test
+    cd build_test
+    # This will automatically enable test mode without manual code changes
+    cmake .. -DSTANDALONE_TEST=ON
+    cmake --build . --config StandaloneTest
+    ```
+    This will generate the `inference` executable in the build_test directory. When building with STANDALONE_TEST=ON:
+    - Test code is automatically enabled
+    - Console output is enabled (no log file redirection)
+    - No manual code changes are needed
+
+3. Run the inference
+
+    ```shell
+    ./inference.exe
+    ```
+
+
+the test will build two parallel diffusion threads, and for each thread, it will diffuse 1000 timesteps.
+
+In the end, you will see the output in the console like:
+
+```
+job: 0, step = X, sum = Y
+job: 1, step = X, sum = Y
+```
+
+If you can see the `step` goes to 0, and the `sum` is not 0, then the installation of TensorRT is successful.
 
 
 ### Problem you might encounter
@@ -131,7 +230,7 @@ once you move all the files to the run directory, your folder structure should b
 ERROR: Mod and diffusion engine don't match! Init failed.
 ```
 
-That means you have different version of the mod and the diffusion engine. you should update your code by `git pull` and build `buildwithbombs-0.2.2.jar` again.
+That means you have different version of the mod and the diffusion engine. you should update your code by `git pull` and build `buildwithbombs-0.2.1.jar` again.
 
 
 
